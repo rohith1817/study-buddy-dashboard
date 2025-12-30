@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, Calendar, Flag, MoreHorizontal, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { 
+  CheckCircle2, 
+  Circle, 
+  Plus, 
+  Layers, 
+  HelpCircle, 
+  BookOpen, 
+  Target,
+  Trash2,
+  Calendar,
+  Clock,
+  Sparkles
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -8,236 +20,299 @@ import { cn } from "@/lib/utils";
 interface Task {
   id: string;
   title: string;
+  icon: "flashcards" | "quiz" | "revise" | "study" | "custom";
   completed: boolean;
-  priority: "high" | "medium" | "low";
-  dueDate: string;
-  subject?: string;
+  createdAt: Date;
 }
 
+const iconMap = {
+  flashcards: Layers,
+  quiz: HelpCircle,
+  revise: Target,
+  study: BookOpen,
+  custom: Sparkles,
+};
+
+const iconColorMap = {
+  flashcards: "text-blue-500 bg-blue-100 dark:bg-blue-900/30",
+  quiz: "text-purple-500 bg-purple-100 dark:bg-purple-900/30",
+  revise: "text-orange-500 bg-orange-100 dark:bg-orange-900/30",
+  study: "text-green-500 bg-green-100 dark:bg-green-900/30",
+  custom: "text-primary bg-secondary",
+};
+
 const initialTasks: Task[] = [
-  { id: "1", title: "Complete Biology Chapter 5 notes", completed: false, priority: "high", dueDate: "Today", subject: "Biology" },
-  { id: "2", title: "Practice quadratic equations", completed: false, priority: "medium", dueDate: "Tomorrow", subject: "Mathematics" },
-  { id: "3", title: "Review flashcards for Chemistry", completed: true, priority: "low", dueDate: "Yesterday", subject: "Chemistry" },
-  { id: "4", title: "Write essay outline for History", completed: false, priority: "high", dueDate: "In 2 days", subject: "History" },
-  { id: "5", title: "Watch lecture video on photosynthesis", completed: true, priority: "medium", dueDate: "Last week", subject: "Biology" },
+  { id: "1", title: "Review Flashcards", icon: "flashcards", completed: false, createdAt: new Date() },
+  { id: "2", title: "Take Quiz", icon: "quiz", completed: false, createdAt: new Date() },
+  { id: "3", title: "Revise Hard Cards", icon: "revise", completed: false, createdAt: new Date() },
+  { id: "4", title: "Study Biology Chapter 5", icon: "study", completed: false, createdAt: new Date() },
+  { id: "5", title: "Practice Math Problems", icon: "custom", completed: true, createdAt: new Date() },
+  { id: "6", title: "Review Yesterday's Notes", icon: "flashcards", completed: true, createdAt: new Date() },
 ];
 
-const priorityColors = {
-  high: "text-destructive",
-  medium: "text-accent",
-  low: "text-muted-foreground",
-};
-
-const priorityBg = {
-  high: "bg-destructive/10",
-  medium: "bg-accent/10",
-  low: "bg-muted",
-};
+const quickAddTasks = [
+  { label: "Review Flashcards", icon: "flashcards" as const },
+  { label: "Take Quiz", icon: "quiz" as const },
+  { label: "Revise Hard Cards", icon: "revise" as const },
+  { label: "Study Session", icon: "study" as const },
+];
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [newTask, setNewTask] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  const pendingTasks = tasks.filter((t) => !t.completed);
+  const completedTasks = tasks.filter((t) => t.completed);
 
   const toggleTask = (id: string) => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)));
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
   };
 
   const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+    setTasks((prev) => prev.filter((task) => task.id !== id));
   };
 
-  const addTask = () => {
-    if (!newTask.trim()) return;
-    const task: Task = {
+  const addTask = (title: string, icon: Task["icon"] = "custom") => {
+    if (!title.trim()) return;
+    const newTask: Task = {
       id: Date.now().toString(),
-      title: newTask,
+      title: title.trim(),
+      icon,
       completed: false,
-      priority: "medium",
-      dueDate: "Today",
+      createdAt: new Date(),
     };
-    setTasks([task, ...tasks]);
-    setNewTask("");
+    setTasks((prev) => [newTask, ...prev]);
+    setNewTaskTitle("");
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "active") return !task.completed;
-    if (filter === "completed") return task.completed;
-    return true;
-  });
+  const addQuickTask = (label: string, icon: Task["icon"]) => {
+    addTask(label, icon);
+  };
 
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const activeCount = tasks.filter((t) => !t.completed).length;
+  const clearCompleted = () => {
+    setTasks((prev) => prev.filter((task) => !task.completed));
+  };
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+      <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
-            <p className="text-muted-foreground">Manage your study tasks and assignments</p>
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">Daily Tasks</h1>
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>{today}</span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{completedCount}</span> of{" "}
-              <span className="font-medium text-foreground">{tasks.length}</span> completed
+        </div>
+
+        {/* Progress Overview */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Today's Progress</p>
+              <p className="text-2xl font-bold text-foreground">
+                {completedTasks.length} of {tasks.length} completed
+              </p>
+            </div>
+            <div className="relative h-16 w-16">
+              <svg className="h-16 w-16 transform -rotate-90">
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="none"
+                  className="text-secondary"
+                />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeDasharray={176}
+                  strokeDashoffset={176 - (176 * completedTasks.length) / Math.max(tasks.length, 1)}
+                  className="text-primary transition-all duration-500"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">
+                {tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0}%
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Add Task */}
+        {/* Quick Add Buttons */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-muted-foreground">Quick Add</p>
+          <div className="flex flex-wrap gap-2">
+            {quickAddTasks.map((task) => {
+              const Icon = iconMap[task.icon];
+              return (
+                <button
+                  key={task.label}
+                  onClick={() => addQuickTask(task.label, task.icon)}
+                  className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-foreground transition-all hover:shadow-soft"
+                >
+                  <Icon className="h-4 w-4" />
+                  {task.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Add Custom Task */}
         <div className="flex gap-3">
           <Input
-            placeholder="Add a new task..."
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTask()}
-            className="flex-1"
+            placeholder="Add a custom task..."
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addTask(newTaskTitle)}
+            className="flex-1 h-12 rounded-xl"
           />
           <Button
-            onClick={addTask}
-            className="gradient-primary text-primary-foreground hover:opacity-90 shadow-soft"
+            onClick={() => addTask(newTaskTitle)}
+            disabled={!newTaskTitle.trim()}
+            className="gradient-primary text-primary-foreground hover:opacity-90 rounded-xl h-12 px-6"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
+            <Plus className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant={filter === "all" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setFilter("all")}
-          >
-            All ({tasks.length})
-          </Button>
-          <Button
-            variant={filter === "active" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setFilter("active")}
-          >
-            Active ({activeCount})
-          </Button>
-          <Button
-            variant={filter === "completed" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setFilter("completed")}
-          >
-            Completed ({completedCount})
-          </Button>
-        </div>
+        {/* Pending Tasks */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold text-foreground">Pending</h2>
+              <span className="text-sm text-muted-foreground">({pendingTasks.length})</span>
+            </div>
+          </div>
 
-        {/* Task List */}
-        <div className="space-y-3">
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No tasks found</p>
+          {pendingTasks.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
+              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+              <p className="text-foreground font-medium">All tasks completed!</p>
+              <p className="text-sm text-muted-foreground mt-1">Great job! Add more tasks or take a break.</p>
             </div>
           ) : (
-            filteredTasks.map((task) => (
-              <div
-                key={task.id}
-                className={cn(
-                  "group flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-soft transition-all hover:shadow-medium animate-scale-in",
-                  task.completed && "opacity-60"
-                )}
-              >
-                <button
-                  onClick={() => toggleTask(task.id)}
-                  className="flex-shrink-0 focus:outline-none"
-                >
-                  {task.completed ? (
-                    <CheckCircle2 className="h-6 w-6 text-primary" />
-                  ) : (
-                    <Circle className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
-                  )}
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={cn(
-                      "font-medium text-foreground",
-                      task.completed && "line-through text-muted-foreground"
-                    )}
-                  >
-                    {task.title}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1">
-                    {task.subject && (
-                      <span className="text-xs text-primary font-medium">{task.subject}</span>
-                    )}
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{task.dueDate}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
+            <div className="space-y-2">
+              {pendingTasks.map((task) => {
+                const Icon = iconMap[task.icon];
+                return (
                   <div
-                    className={cn(
-                      "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
-                      priorityBg[task.priority],
-                      priorityColors[task.priority]
-                    )}
+                    key={task.id}
+                    className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-soft transition-all hover:shadow-medium animate-fade-in"
                   >
-                    <Flag className="h-3 w-3" />
-                    <span className="capitalize">{task.priority}</span>
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      className="flex-shrink-0 focus:outline-none"
+                    >
+                      <Circle className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
+                    </button>
+
+                    <div className={cn(
+                      "flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center",
+                      iconColorMap[task.icon]
+                    )}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <span className="flex-1 font-medium text-foreground">{task.title}</span>
+
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="opacity-0 group-hover:opacity-100 rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-                <Flag className="h-5 w-5 text-destructive" />
+        {/* Completed Tasks */}
+        {completedTasks.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <h2 className="text-lg font-semibold text-foreground">Completed</h2>
+                <span className="text-sm text-muted-foreground">({completedTasks.length})</span>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {tasks.filter((t) => t.priority === "high" && !t.completed).length}
-                </p>
-                <p className="text-sm text-muted-foreground">High Priority</p>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearCompleted}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                Clear All
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {completedTasks.map((task) => {
+                const Icon = iconMap[task.icon];
+                return (
+                  <div
+                    key={task.id}
+                    className="group flex items-center gap-4 rounded-xl border border-border bg-card/50 p-4 transition-all animate-fade-in"
+                  >
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      className="flex-shrink-0 focus:outline-none"
+                    >
+                      <CheckCircle2 className="h-6 w-6 text-green-500" />
+                    </button>
+
+                    <div className={cn(
+                      "flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center opacity-50",
+                      iconColorMap[task.icon]
+                    )}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <span className="flex-1 font-medium text-muted-foreground line-through">
+                      {task.title}
+                    </span>
+
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                <Calendar className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {tasks.filter((t) => t.dueDate === "Today" && !t.completed).length}
-                </p>
-                <p className="text-sm text-muted-foreground">Due Today</p>
-              </div>
-            </div>
+        )}
+
+        {/* Motivation Message */}
+        {pendingTasks.length > 0 && completedTasks.length > 0 && (
+          <div className="text-center py-4 animate-fade-in">
+            <p className="text-sm text-muted-foreground">
+              🎯 You're making great progress! Keep going!
+            </p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-                <p className="text-sm text-muted-foreground">Completed</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </MainLayout>
   );
