@@ -1,206 +1,428 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Plus, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Bookmark, BookmarkCheck, Filter, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface Flashcard {
   id: string;
-  front: string;
-  back: string;
-  deck: string;
+  question: string;
+  answer: string;
+  difficulty: "easy" | "medium" | "hard" | "forgot" | null;
+  bookmarked: boolean;
+  subject: string;
 }
 
-const mockFlashcards: Flashcard[] = [
+const initialFlashcards: Flashcard[] = [
   {
     id: "1",
-    front: "What is photosynthesis?",
-    back: "The process by which plants convert light energy into chemical energy, producing glucose and oxygen from carbon dioxide and water.",
-    deck: "Biology",
+    question: "What is photosynthesis?",
+    answer: "The process by which plants convert light energy into chemical energy, producing glucose and oxygen from carbon dioxide and water using chlorophyll in chloroplasts.",
+    difficulty: null,
+    bookmarked: false,
+    subject: "Biology",
   },
   {
     id: "2",
-    front: "What is the Pythagorean theorem?",
-    back: "In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides: a² + b² = c²",
-    deck: "Mathematics",
+    question: "What is the Pythagorean theorem?",
+    answer: "In a right triangle, the square of the hypotenuse (c) equals the sum of squares of the other two sides: a² + b² = c²",
+    difficulty: "easy",
+    bookmarked: true,
+    subject: "Mathematics",
   },
   {
     id: "3",
-    front: "When did World War II end?",
-    back: "September 2, 1945, with the formal surrender of Japan aboard the USS Missouri.",
-    deck: "History",
+    question: "When did World War II end?",
+    answer: "September 2, 1945, with the formal surrender of Japan aboard the USS Missouri in Tokyo Bay.",
+    difficulty: "medium",
+    bookmarked: false,
+    subject: "History",
   },
   {
     id: "4",
-    front: "What is the chemical formula for water?",
-    back: "H₂O - Two hydrogen atoms bonded to one oxygen atom.",
-    deck: "Chemistry",
+    question: "What is the chemical formula for water?",
+    answer: "H₂O - Two hydrogen atoms covalently bonded to one oxygen atom.",
+    difficulty: null,
+    bookmarked: true,
+    subject: "Chemistry",
+  },
+  {
+    id: "5",
+    question: "What is Newton's First Law of Motion?",
+    answer: "An object at rest stays at rest, and an object in motion stays in motion with the same speed and direction, unless acted upon by an unbalanced force.",
+    difficulty: "hard",
+    bookmarked: false,
+    subject: "Physics",
+  },
+  {
+    id: "6",
+    question: "What is the mitochondria's function?",
+    answer: "The mitochondria is the powerhouse of the cell, responsible for producing ATP (adenosine triphosphate) through cellular respiration.",
+    difficulty: "forgot",
+    bookmarked: false,
+    subject: "Biology",
   },
 ];
 
-const decks = [
-  { name: "All Cards", count: 24 },
-  { name: "Biology", count: 8 },
-  { name: "Mathematics", count: 6 },
-  { name: "History", count: 5 },
-  { name: "Chemistry", count: 5 },
+const difficultyColors = {
+  easy: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  medium: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+  hard: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+  forgot: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+};
+
+const filterOptions = [
+  { value: "all", label: "All Cards" },
+  { value: "easy", label: "Easy" },
+  { value: "medium", label: "Medium" },
+  { value: "hard", label: "Hard" },
+  { value: "forgot", label: "Forgot" },
+  { value: "bookmarked", label: "Bookmarked" },
+  { value: "unrated", label: "Unrated" },
 ];
 
 export default function Flashcards() {
+  const [flashcards, setFlashcards] = useState<Flashcard[]>(initialFlashcards);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [selectedDeck, setSelectedDeck] = useState("All Cards");
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  const currentCard = mockFlashcards[currentIndex];
+  // Filter flashcards
+  const filteredCards = flashcards.filter((card) => {
+    const matchesSearch =
+      card.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.subject.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    switch (activeFilter) {
+      case "easy":
+      case "medium":
+      case "hard":
+      case "forgot":
+        return card.difficulty === activeFilter;
+      case "bookmarked":
+        return card.bookmarked;
+      case "unrated":
+        return card.difficulty === null;
+      default:
+        return true;
+    }
+  });
+
+  const currentCard = filteredCards[currentIndex];
 
   const nextCard = () => {
-    setIsFlipped(false);
+    setShowAnswer(false);
     setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % mockFlashcards.length);
+      setCurrentIndex((prev) => (prev + 1) % filteredCards.length);
     }, 150);
   };
 
   const prevCard = () => {
-    setIsFlipped(false);
+    setShowAnswer(false);
     setTimeout(() => {
-      setCurrentIndex((prev) => (prev - 1 + mockFlashcards.length) % mockFlashcards.length);
+      setCurrentIndex((prev) => (prev - 1 + filteredCards.length) % filteredCards.length);
     }, 150);
   };
 
-  const flipCard = () => {
-    setIsFlipped(!isFlipped);
+  const toggleBookmark = (id: string) => {
+    setFlashcards((cards) =>
+      cards.map((card) =>
+        card.id === id ? { ...card, bookmarked: !card.bookmarked } : card
+      )
+    );
+  };
+
+  const setDifficulty = (id: string, difficulty: "easy" | "medium" | "hard" | "forgot") => {
+    setFlashcards((cards) =>
+      cards.map((card) =>
+        card.id === id ? { ...card, difficulty } : card
+      )
+    );
+    // Auto-advance to next card after rating
+    setTimeout(() => {
+      nextCard();
+    }, 300);
+  };
+
+  // Reset current index when filter changes
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+    setCurrentIndex(0);
+    setShowAnswer(false);
   };
 
   return (
     <MainLayout>
-      <div className="space-y-8 animate-fade-in">
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-foreground">Flashcards</h1>
-            <p className="text-muted-foreground">Review and memorize your study materials</p>
-          </div>
-          <Button className="gradient-primary text-primary-foreground hover:opacity-90 shadow-soft">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Deck
-          </Button>
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">Flashcards</h1>
+          <p className="text-muted-foreground">Review and rate your cards to improve learning</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
-          {/* Deck Sidebar */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              Decks
-            </h3>
-            <div className="space-y-2">
-              {decks.map((deck) => (
+        {/* Search and Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search flashcards..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentIndex(0);
+              }}
+              className="pl-10 h-12 rounded-xl"
+            />
+          </div>
+
+          {/* Filter Dropdown Style Buttons */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <div className="flex gap-1 flex-wrap">
+              {filterOptions.map((option) => (
                 <button
-                  key={deck.name}
-                  onClick={() => setSelectedDeck(deck.name)}
+                  key={option.value}
+                  onClick={() => handleFilterChange(option.value)}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all",
-                    selectedDeck === deck.name
-                      ? "bg-secondary text-secondary-foreground shadow-soft"
-                      : "text-muted-foreground hover:bg-secondary/50"
+                    "px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+                    activeFilter === option.value
+                      ? "bg-primary text-primary-foreground shadow-soft"
+                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                   )}
                 >
-                  <span>{deck.name}</span>
-                  <span className="text-xs bg-muted rounded-full px-2 py-0.5">{deck.count}</span>
+                  {option.label}
                 </button>
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Flashcard Display */}
-          <div className="lg:col-span-3 flex flex-col items-center">
-            {/* Card Counter */}
-            <div className="mb-4 text-sm text-muted-foreground">
-              Card {currentIndex + 1} of {mockFlashcards.length}
-            </div>
+        {/* Card Counter */}
+        {filteredCards.length > 0 && (
+          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+            <span>
+              Card <span className="font-semibold text-foreground">{currentIndex + 1}</span> of{" "}
+              <span className="font-semibold text-foreground">{filteredCards.length}</span>
+            </span>
+          </div>
+        )}
 
-            {/* Flashcard */}
+        {/* Flashcard */}
+        {filteredCards.length > 0 && currentCard ? (
+          <div className="space-y-6">
+            {/* Card Container */}
             <div
-              onClick={flipCard}
-              className={cn("flip-card w-full max-w-xl aspect-[3/2] cursor-pointer", isFlipped && "flipped")}
+              className={cn(
+                "relative rounded-2xl border bg-card p-8 shadow-medium transition-all duration-300 min-h-[320px]",
+                showAnswer ? "border-primary/30" : "border-border"
+              )}
             >
-              <div className="flip-card-inner relative w-full h-full">
-                {/* Front */}
-                <div className="flip-card-front absolute inset-0 rounded-2xl border border-border bg-card p-8 shadow-medium flex flex-col items-center justify-center">
-                  <span className="text-xs text-primary font-medium mb-4 uppercase tracking-wide">
-                    {currentCard.deck}
-                  </span>
-                  <p className="text-xl font-medium text-foreground text-center">
-                    {currentCard.front}
-                  </p>
-                  <span className="absolute bottom-4 text-xs text-muted-foreground">
-                    Click to flip
-                  </span>
-                </div>
+              {/* Subject Badge & Bookmark */}
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-xs font-semibold text-primary uppercase tracking-wide bg-secondary px-3 py-1 rounded-full">
+                  {currentCard.subject}
+                </span>
+                <button
+                  onClick={() => toggleBookmark(currentCard.id)}
+                  className={cn(
+                    "p-2 rounded-lg transition-all",
+                    currentCard.bookmarked
+                      ? "text-amber-500 bg-amber-100 dark:bg-amber-900/30"
+                      : "text-muted-foreground hover:bg-secondary"
+                  )}
+                >
+                  {currentCard.bookmarked ? (
+                    <BookmarkCheck className="h-5 w-5" />
+                  ) : (
+                    <Bookmark className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
 
-                {/* Back */}
-                <div className="flip-card-back absolute inset-0 rounded-2xl border border-primary/20 gradient-subtle p-8 shadow-medium flex flex-col items-center justify-center">
-                  <span className="text-xs text-accent font-medium mb-4 uppercase tracking-wide">
-                    Answer
-                  </span>
-                  <p className="text-lg text-foreground text-center leading-relaxed">
-                    {currentCard.back}
-                  </p>
-                  <span className="absolute bottom-4 text-xs text-muted-foreground">
-                    Click to flip back
+              {/* Difficulty Badge (if rated) */}
+              {currentCard.difficulty && (
+                <div className="absolute top-4 right-16">
+                  <span
+                    className={cn(
+                      "text-xs font-medium px-2 py-1 rounded-full border",
+                      difficultyColors[currentCard.difficulty]
+                    )}
+                  >
+                    {currentCard.difficulty.charAt(0).toUpperCase() + currentCard.difficulty.slice(1)}
                   </span>
                 </div>
+              )}
+
+              {/* Question */}
+              <div className="text-center mb-8">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Question</p>
+                <h2 className="text-xl font-semibold text-foreground leading-relaxed">
+                  {currentCard.question}
+                </h2>
+              </div>
+
+              {/* Answer Section */}
+              <div className="text-center">
+                {!showAnswer ? (
+                  <Button
+                    onClick={() => setShowAnswer(true)}
+                    size="lg"
+                    className="gradient-primary text-primary-foreground hover:opacity-90 shadow-soft rounded-xl px-8"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Show Answer
+                  </Button>
+                ) : (
+                  <div className="animate-fade-in">
+                    <p className="text-xs text-accent uppercase tracking-wide mb-3">Answer</p>
+                    <div className="rounded-xl bg-secondary/50 p-5 mb-2">
+                      <p className="text-foreground leading-relaxed">{currentCard.answer}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Navigation Controls */}
-            <div className="flex items-center gap-4 mt-8">
+            {/* Difficulty Rating Buttons */}
+            {showAnswer && (
+              <div className="space-y-3 animate-fade-in">
+                <p className="text-center text-sm text-muted-foreground">How well did you know this?</p>
+                <div className="flex justify-center gap-3">
+                  <Button
+                    onClick={() => setDifficulty(currentCard.id, "forgot")}
+                    variant="outline"
+                    className={cn(
+                      "rounded-xl px-6 transition-all hover:scale-105",
+                      "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                    )}
+                  >
+                    😕 Forgot
+                  </Button>
+                  <Button
+                    onClick={() => setDifficulty(currentCard.id, "hard")}
+                    variant="outline"
+                    className={cn(
+                      "rounded-xl px-6 transition-all hover:scale-105",
+                      "border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                    )}
+                  >
+                    🤔 Hard
+                  </Button>
+                  <Button
+                    onClick={() => setDifficulty(currentCard.id, "medium")}
+                    variant="outline"
+                    className={cn(
+                      "rounded-xl px-6 transition-all hover:scale-105",
+                      "border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                    )}
+                  >
+                    😐 Medium
+                  </Button>
+                  <Button
+                    onClick={() => setDifficulty(currentCard.id, "easy")}
+                    variant="outline"
+                    className={cn(
+                      "rounded-xl px-6 transition-all hover:scale-105",
+                      "border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20"
+                    )}
+                  >
+                    😊 Easy
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation */}
+            <div className="flex items-center justify-center gap-4">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={prevCard}
-                className="rounded-full"
+                className="rounded-full h-12 w-12"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  setIsFlipped(false);
-                  setCurrentIndex(0);
-                }}
-                className="rounded-full"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
+
+              {/* Progress Dots */}
+              <div className="flex gap-1.5 max-w-[200px] overflow-hidden">
+                {filteredCards.slice(Math.max(0, currentIndex - 3), Math.min(filteredCards.length, currentIndex + 4)).map((_, idx) => {
+                  const actualIndex = Math.max(0, currentIndex - 3) + idx;
+                  return (
+                    <button
+                      key={actualIndex}
+                      onClick={() => {
+                        setShowAnswer(false);
+                        setCurrentIndex(actualIndex);
+                      }}
+                      className={cn(
+                        "h-2 rounded-full transition-all",
+                        actualIndex === currentIndex
+                          ? "bg-primary w-6"
+                          : "bg-muted hover:bg-muted-foreground/30 w-2"
+                      )}
+                    />
+                  );
+                })}
+              </div>
+
               <Button
                 variant="outline"
                 size="icon"
                 onClick={nextCard}
-                className="rounded-full"
+                className="rounded-full h-12 w-12"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
-
-            {/* Progress Dots */}
-            <div className="flex gap-2 mt-6">
-              {mockFlashcards.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setIsFlipped(false);
-                    setCurrentIndex(index);
-                  }}
-                  className={cn(
-                    "h-2 w-2 rounded-full transition-all",
-                    index === currentIndex
-                      ? "bg-primary w-6"
-                      : "bg-muted hover:bg-muted-foreground/30"
-                  )}
-                />
-              ))}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="text-center py-16 rounded-2xl border border-dashed border-border bg-card">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
             </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No flashcards found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery
+                ? "Try adjusting your search or filter"
+                : "Upload some notes to generate flashcards"}
+            </p>
+          </div>
+        )}
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
+          <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-center">
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {flashcards.filter((c) => c.difficulty === "easy").length}
+            </p>
+            <p className="text-sm text-green-600/80 dark:text-green-400/80">Easy</p>
+          </div>
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-center">
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {flashcards.filter((c) => c.difficulty === "medium").length}
+            </p>
+            <p className="text-sm text-amber-600/80 dark:text-amber-400/80">Medium</p>
+          </div>
+          <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4 text-center">
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {flashcards.filter((c) => c.difficulty === "hard").length}
+            </p>
+            <p className="text-sm text-orange-600/80 dark:text-orange-400/80">Hard</p>
+          </div>
+          <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-center">
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {flashcards.filter((c) => c.difficulty === "forgot").length}
+            </p>
+            <p className="text-sm text-red-600/80 dark:text-red-400/80">Forgot</p>
           </div>
         </div>
       </div>
