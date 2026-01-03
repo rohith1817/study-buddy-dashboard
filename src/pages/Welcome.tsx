@@ -141,7 +141,7 @@ const Welcome = () => {
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              Loading StudySync
+              Loading Learn Flow
             </motion.h2>
 
             {/* Progress bar */}
@@ -213,10 +213,10 @@ const Welcome = () => {
                 transition={{ delay: 0.7, duration: 0.8 }}
               >
                 <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
-                  Study
+                  Learn
                 </span>
                 <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
-                  Sync
+                  Flow
                 </span>
               </motion.h1>
 
