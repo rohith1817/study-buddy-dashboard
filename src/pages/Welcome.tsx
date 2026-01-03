@@ -1,0 +1,338 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Brain, BookOpen, Zap, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const Welcome = () => {
+  const navigate = useNavigate();
+  const [showContent, setShowContent] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+
+  useEffect(() => {
+    // Simulate loading
+    const interval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => setShowContent(true), 500);
+          return 100;
+        }
+        return prev + 2;
+      });
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleGetStarted = () => {
+    navigate("/dashboard");
+  };
+
+  // Floating particles
+  const particles = Array.from({ length: 50 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 4 + 1,
+    duration: Math.random() * 20 + 10,
+    delay: Math.random() * 5,
+  }));
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] overflow-hidden relative">
+      {/* Animated background gradient */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-cyan-900/20" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-purple-600/10 via-transparent to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+      </div>
+
+      {/* Floating particles */}
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className="absolute rounded-full bg-white/20"
+          style={{
+            width: particle.size,
+            height: particle.size,
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.2, 0.8, 0.2],
+          }}
+          transition={{
+            duration: particle.duration,
+            repeat: Infinity,
+            delay: particle.delay,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+
+      {/* Grid pattern overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), 
+                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px',
+        }}
+      />
+
+      <AnimatePresence mode="wait">
+        {!showContent ? (
+          // Loading screen
+          <motion.div
+            key="loading"
+            className="absolute inset-0 flex flex-col items-center justify-center z-20"
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+          >
+            {/* Central animated logo */}
+            <motion.div
+              className="relative mb-8"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            >
+              {/* Outer ring */}
+              <div className="w-40 h-40 rounded-full border-2 border-purple-500/30 flex items-center justify-center">
+                {/* Inner rotating elements */}
+                <motion.div
+                  className="absolute w-44 h-44"
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                >
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-2 h-2 bg-cyan-400 rounded-full"
+                      style={{
+                        top: "50%",
+                        left: "50%",
+                        transform: `rotate(${i * 45}deg) translateY(-88px)`,
+                      }}
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.25 }}
+                    />
+                  ))}
+                </motion.div>
+
+                {/* Center brain icon */}
+                <motion.div
+                  className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Brain className="w-12 h-12 text-white" />
+                </motion.div>
+              </div>
+
+              {/* Glow effect */}
+              <div className="absolute inset-0 rounded-full bg-purple-500/20 blur-xl" />
+            </motion.div>
+
+            {/* Loading text */}
+            <motion.h2
+              className="text-2xl font-bold text-white mb-4"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Loading StudySync
+            </motion.h2>
+
+            {/* Progress bar */}
+            <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-purple-500 rounded-full"
+                style={{ width: `${loadingProgress}%` }}
+                transition={{ duration: 0.1 }}
+              />
+            </div>
+            <p className="mt-2 text-white/50 text-sm">{loadingProgress}%</p>
+          </motion.div>
+        ) : (
+          // Main content
+          <motion.div
+            key="content"
+            className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* Top decorative elements */}
+            <motion.div
+              className="absolute top-8 left-8"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+            >
+              <div className="flex items-center gap-2 text-white/60">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                <span className="text-sm font-medium">AI-Powered Learning</span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="absolute top-8 right-8"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+            >
+              <div className="flex items-center gap-2 text-white/60">
+                <span className="text-sm font-medium">Smart Study Platform</span>
+                <BookOpen className="w-5 h-5 text-cyan-400" />
+              </div>
+            </motion.div>
+
+            {/* Main content container */}
+            <div className="text-center max-w-4xl mx-auto">
+              {/* Animated badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8"
+              >
+                <motion.div
+                  className="w-2 h-2 rounded-full bg-green-400"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                />
+                <span className="text-white/70 text-sm">Welcome to the Future of Learning</span>
+              </motion.div>
+
+              {/* Main title with gradient */}
+              <motion.h1
+                className="text-6xl md:text-8xl font-black mb-6"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.8 }}
+              >
+                <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
+                  Study
+                </span>
+                <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
+                  Sync
+                </span>
+              </motion.h1>
+
+              {/* Subtitle */}
+              <motion.p
+                className="text-xl md:text-2xl text-white/60 mb-12 max-w-2xl mx-auto leading-relaxed"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9, duration: 0.8 }}
+              >
+                Your AI-powered companion for mastering any subject. 
+                <br />
+                <span className="text-white/80">Flashcards, quizzes, and intelligent doubt solving.</span>
+              </motion.p>
+
+              {/* Stats row */}
+              <motion.div
+                className="flex flex-wrap justify-center gap-8 mb-12"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1, duration: 0.8 }}
+              >
+                {[
+                  { icon: Brain, label: "AI Doubt Solver", color: "purple" },
+                  { icon: BookOpen, label: "Smart Flashcards", color: "cyan" },
+                  { icon: Zap, label: "Quick Quizzes", color: "yellow" },
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.label}
+                    className="flex items-center gap-3 px-6 py-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm"
+                    whileHover={{ scale: 1.05, borderColor: "rgba(255,255,255,0.3)" }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <item.icon 
+                      className={`w-5 h-5 ${
+                        item.color === 'purple' ? 'text-purple-400' : 
+                        item.color === 'cyan' ? 'text-cyan-400' : 'text-yellow-400'
+                      }`} 
+                    />
+                    <span className="text-white/80 font-medium">{item.label}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* CTA Button */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.3, duration: 0.5, type: "spring" }}
+              >
+                <Button
+                  onClick={handleGetStarted}
+                  className="group relative px-10 py-7 text-lg font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white shadow-2xl shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105"
+                >
+                  <span className="flex items-center gap-3">
+                    Get Started
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                    </motion.span>
+                  </span>
+                  
+                  {/* Button glow effect */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 blur-xl opacity-50 -z-10 group-hover:opacity-75 transition-opacity" />
+                </Button>
+              </motion.div>
+
+              {/* Bottom hint */}
+              <motion.p
+                className="mt-8 text-white/40 text-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+              >
+                Press Enter or click to begin your learning journey
+              </motion.p>
+            </div>
+
+            {/* Decorative corner elements */}
+            <motion.div
+              className="absolute bottom-8 left-8 flex gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.7 }}
+            >
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-2 h-2 rounded-full bg-white/20" />
+              ))}
+            </motion.div>
+
+            <motion.div
+              className="absolute bottom-8 right-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.7 }}
+            >
+              <p className="text-white/30 text-xs">Powered by AI</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default Welcome;
