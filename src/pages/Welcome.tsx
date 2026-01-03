@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Sparkles, Brain, BookOpen, Zap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +8,41 @@ const Welcome = () => {
   const navigate = useNavigate();
   const [showContent, setShowContent] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mouse position tracking
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  // Smooth spring animations for cursor following
+  const springConfig = { damping: 25, stiffness: 150 };
+  const smoothMouseX = useSpring(mouseX, springConfig);
+  const smoothMouseY = useSpring(mouseY, springConfig);
+
+  // Transform mouse position to movement values for different layers
+  const layer1X = useTransform(smoothMouseX, [0, 1], [-30, 30]);
+  const layer1Y = useTransform(smoothMouseY, [0, 1], [-30, 30]);
+  const layer2X = useTransform(smoothMouseX, [0, 1], [-50, 50]);
+  const layer2Y = useTransform(smoothMouseY, [0, 1], [-50, 50]);
+  const layer3X = useTransform(smoothMouseX, [0, 1], [-20, 20]);
+  const layer3Y = useTransform(smoothMouseY, [0, 1], [-20, 20]);
+  const rotateX = useTransform(smoothMouseY, [0, 1], [5, -5]);
+  const rotateY = useTransform(smoothMouseX, [0, 1], [-5, 5]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        mouseX.set(x);
+        mouseY.set(y);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [mouseX, mouseY]);
 
   useEffect(() => {
     // Simulate loading
@@ -29,7 +64,7 @@ const Welcome = () => {
     navigate("/dashboard");
   };
 
-  // Floating particles
+  // Floating particles with parallax
   const particles = Array.from({ length: 50 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
@@ -37,17 +72,70 @@ const Welcome = () => {
     size: Math.random() * 4 + 1,
     duration: Math.random() * 20 + 10,
     delay: Math.random() * 5,
+    parallaxFactor: Math.random() * 0.5 + 0.2,
   }));
 
+  // Floating shapes that follow cursor
+  const floatingShapes = [
+    { id: 1, shape: "circle", size: 60, x: 15, y: 20, color: "purple", parallax: 40 },
+    { id: 2, shape: "circle", size: 40, x: 85, y: 15, color: "cyan", parallax: 30 },
+    { id: 3, shape: "square", size: 30, x: 10, y: 70, color: "violet", parallax: 50 },
+    { id: 4, shape: "circle", size: 50, x: 90, y: 75, color: "pink", parallax: 35 },
+    { id: 5, shape: "square", size: 25, x: 75, y: 45, color: "blue", parallax: 45 },
+    { id: 6, shape: "circle", size: 35, x: 25, y: 85, color: "indigo", parallax: 25 },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#0a0a0f] overflow-hidden relative">
-      {/* Animated background gradient */}
+    <div ref={containerRef} className="min-h-screen bg-[#0a0a0f] overflow-hidden relative">
+      {/* Animated background gradient - follows cursor */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-cyan-900/20" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-purple-600/10 via-transparent to-transparent rounded-full blur-3xl" />
-        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        <motion.div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-purple-600/10 via-transparent to-transparent rounded-full blur-3xl"
+          style={{ x: layer2X, y: layer2Y }}
+        />
+        <motion.div 
+          className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ x: layer1X, y: layer1Y }}
+        />
+        <motion.div 
+          className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-3xl animate-pulse" 
+          style={{ x: layer3X, y: layer3Y, animationDelay: "1s" }}
+        />
       </div>
+
+      {/* Floating shapes that follow cursor */}
+      {floatingShapes.map((shape) => (
+        <motion.div
+          key={shape.id}
+          className={`absolute ${shape.shape === "circle" ? "rounded-full" : "rounded-lg rotate-45"} opacity-20 blur-sm`}
+          style={{
+            width: shape.size,
+            height: shape.size,
+            left: `${shape.x}%`,
+            top: `${shape.y}%`,
+            background: `linear-gradient(135deg, ${
+              shape.color === "purple" ? "#a855f7, #7c3aed" :
+              shape.color === "cyan" ? "#22d3ee, #06b6d4" :
+              shape.color === "violet" ? "#8b5cf6, #6d28d9" :
+              shape.color === "pink" ? "#ec4899, #db2777" :
+              shape.color === "blue" ? "#3b82f6, #2563eb" :
+              "#6366f1, #4f46e5"
+            })`,
+            x: useTransform(smoothMouseX, [0, 1], [-shape.parallax, shape.parallax]),
+            y: useTransform(smoothMouseY, [0, 1], [-shape.parallax, shape.parallax]),
+          }}
+          animate={{
+            scale: [1, 1.1, 1],
+            rotate: shape.shape === "square" ? [45, 90, 45] : 0,
+          }}
+          transition={{
+            duration: 4 + shape.id,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
 
       {/* Floating particles */}
       {particles.map((particle) => (
@@ -92,11 +180,12 @@ const Welcome = () => {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
           >
-            {/* Central animated logo */}
+            {/* Central animated logo - with parallax */}
             <motion.div
               className="relative mb-8"
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              style={{ x: layer1X, y: layer1Y }}
             >
               {/* Outer ring */}
               <div className="w-40 h-40 rounded-full border-2 border-purple-500/30 flex items-center justify-center">
@@ -205,12 +294,19 @@ const Welcome = () => {
                 <span className="text-white/70 text-sm">Welcome to the Future of Learning</span>
               </motion.div>
 
-              {/* Main title with gradient */}
+              {/* Main title with gradient - parallax effect */}
               <motion.h1
                 className="text-6xl md:text-8xl font-black mb-6"
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.8 }}
+                style={{ 
+                  x: layer3X, 
+                  y: layer3Y,
+                  rotateX,
+                  rotateY,
+                  transformPerspective: 1000,
+                }}
               >
                 <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
                   Learn
