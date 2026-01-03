@@ -10,6 +10,7 @@ import StudyMode from "./pages/StudyMode";
 import Quiz from "./pages/Quiz";
 import Tasks from "./pages/Tasks";
 import Dashboard from "./pages/Dashboard";
+import DoubtSolver from "./pages/DoubtSolver";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/study" element={<StudyMode />} />
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/doubt-solver" element={<DoubtSolver />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
