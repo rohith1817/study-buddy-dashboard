@@ -9,6 +9,7 @@ import Flashcards from "./pages/Flashcards";
 import StudyMode from "./pages/StudyMode";
 import Quiz from "./pages/Quiz";
 import Tasks from "./pages/Tasks";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/upload" element={<UploadNotes />} />
           <Route path="/flashcards" element={<Flashcards />} />
           <Route path="/study" element={<StudyMode />} />
