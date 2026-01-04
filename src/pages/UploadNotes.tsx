@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Upload, FileText, X, CheckCircle, Loader2, Sparkles, File, AlertCircle } from "lucide-react";
+import { Upload, FileText, X, CheckCircle, Loader2, Sparkles, File, AlertCircle, BookOpen, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface UploadedFile {
   id: string;
@@ -12,12 +16,16 @@ interface UploadedFile {
   type: string;
   status: "uploading" | "processing" | "complete" | "error";
   progress: number;
+  content?: string;
 }
 
 export default function UploadNotes() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [isDragOver, setIsDragOver] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateType, setGenerateType] = useState<"flashcards" | "quiz">("flashcards");
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -42,21 +50,77 @@ export default function UploadNotes() {
     }
   };
 
-  const handleFiles = (fileList: File[]) => {
-    const newFiles: UploadedFile[] = fileList.map((file) => ({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: formatFileSize(file.size),
-      type: file.type,
-      status: "uploading" as const,
-      progress: 0,
-    }));
+  const handleFiles = async (fileList: File[]) => {
+    for (const file of fileList) {
+      const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      
+      const newFile: UploadedFile = {
+        id: fileId,
+        name: file.name,
+        size: formatFileSize(file.size),
+        type: file.type,
+        status: "uploading",
+        progress: 0,
+      };
 
-    setFiles((prev) => [...prev, ...newFiles]);
+      setFiles((prev) => [...prev, newFile]);
 
-    // Simulate upload progress
-    newFiles.forEach((file) => {
-      simulateUpload(file.id);
+      try {
+        // Read file content
+        const content = await readFileContent(file);
+        
+        // Update progress
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileId ? { ...f, progress: 50, status: "processing" } : f
+          )
+        );
+
+        // Simulate processing time
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileId ? { ...f, status: "complete", progress: 100, content } : f
+          )
+        );
+      } catch (error) {
+        console.error("Error reading file:", error);
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileId ? { ...f, status: "error", progress: 0 } : f
+          )
+        );
+      }
+    }
+  };
+
+  const readFileContent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === "string") {
+          resolve(result);
+        } else if (result instanceof ArrayBuffer) {
+          // For PDF and DOCX, we'll extract text differently
+          // For now, we'll use a simple approach
+          const decoder = new TextDecoder();
+          resolve(decoder.decode(result));
+        } else {
+          reject(new Error("Unable to read file"));
+        }
+      };
+      
+      reader.onerror = () => reject(reader.error);
+      
+      if (file.type === "text/plain") {
+        reader.readAsText(file);
+      } else {
+        // For PDF and DOCX, read as text (simplified - in production use proper parsers)
+        reader.readAsText(file);
+      }
     });
   };
 
@@ -68,46 +132,103 @@ export default function UploadNotes() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const simulateUpload = (fileId: string) => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 30;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId ? { ...f, status: "processing", progress: 100 } : f
-          )
-        );
-        // Simulate processing
-        setTimeout(() => {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === fileId ? { ...f, status: "complete" } : f
-            )
-          );
-        }, 2000);
-      } else {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId ? { ...f, progress: Math.min(progress, 100) } : f
-          )
-        );
-      }
-    }, 300);
-  };
-
   const removeFile = (id: string) => {
     setFiles(files.filter((f) => f.id !== id));
   };
 
-  const handleGenerateFlashcards = () => {
+  const handleGenerate = async (type: "flashcards" | "quiz") => {
+    if (!user) {
+      toast.error("Please sign in to generate content");
+      return;
+    }
+
+    const completedFiles = files.filter((f) => f.status === "complete" && f.content);
+    if (completedFiles.length === 0) {
+      toast.error("No files ready for processing");
+      return;
+    }
+
     setIsGenerating(true);
-    // Simulate generation process
-    setTimeout(() => {
+    setGenerateType(type);
+
+    try {
+      // Combine all file contents
+      const combinedContent = completedFiles
+        .map((f) => `--- ${f.name} ---\n${f.content}`)
+        .join("\n\n");
+
+      // Call edge function to generate content
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: { content: combinedContent, type },
+      });
+
+      if (error) {
+        if (error.message.includes("429")) {
+          toast.error("Rate limit exceeded. Please try again later.");
+        } else if (error.message.includes("402")) {
+          toast.error("Usage limit reached. Please add credits.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      if (type === "flashcards") {
+        // Save flashcards to database
+        const flashcardsToInsert = data.flashcards.map((card: any) => ({
+          user_id: user.id,
+          question: card.question,
+          answer: card.answer,
+          subject: card.subject,
+          source_file_name: completedFiles[0].name,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("flashcards")
+          .insert(flashcardsToInsert);
+
+        if (insertError) throw insertError;
+
+        toast.success(`Generated ${data.flashcards.length} flashcards!`);
+        navigate("/flashcards");
+      } else {
+        // Save quiz to database
+        const { data: quizData, error: quizError } = await supabase
+          .from("quizzes")
+          .insert({
+            user_id: user.id,
+            title: data.title,
+            source_file_name: completedFiles[0].name,
+          })
+          .select()
+          .single();
+
+        if (quizError) throw quizError;
+
+        // Save quiz questions
+        const questionsToInsert = data.questions.map((q: any) => ({
+          quiz_id: quizData.id,
+          question: q.question,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          explanation: q.explanation,
+        }));
+
+        const { error: questionsError } = await supabase
+          .from("quiz_questions")
+          .insert(questionsToInsert);
+
+        if (questionsError) throw questionsError;
+
+        toast.success(`Generated quiz with ${data.questions.length} questions!`);
+        navigate("/quiz");
+      }
+    } catch (error) {
+      console.error("Error generating content:", error);
+      toast.error("Failed to generate content. Please try again.");
+    } finally {
       setIsGenerating(false);
-    }, 3000);
+    }
   };
 
   const completedFiles = files.filter((f) => f.status === "complete").length;
@@ -119,7 +240,7 @@ export default function UploadNotes() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-foreground">Upload Your Notes</h1>
           <p className="text-muted-foreground text-lg">
-            Upload your study materials and we'll create flashcards for you
+            Upload your study materials and we'll create flashcards or quizzes for you
           </p>
         </div>
 
@@ -231,7 +352,7 @@ export default function UploadNotes() {
                         <div className="mt-2 space-y-1">
                           <Progress value={file.progress} className="h-2" />
                           <p className="text-xs text-muted-foreground">
-                            Uploading... {Math.round(file.progress)}%
+                            Reading file... {Math.round(file.progress)}%
                           </p>
                         </div>
                       )}
@@ -246,7 +367,7 @@ export default function UploadNotes() {
                       
                       {file.status === "complete" && (
                         <p className="text-sm text-green-600 mt-1 font-medium">
-                          Ready to generate flashcards!
+                          Ready to generate content!
                         </p>
                       )}
                     </div>
@@ -265,27 +386,50 @@ export default function UploadNotes() {
           </div>
         )}
 
-        {/* Generate Button */}
+        {/* Generate Buttons */}
         {completedFiles > 0 && (
           <div className="flex flex-col items-center gap-4 pt-4 animate-fade-in">
-            <Button
-              onClick={handleGenerateFlashcards}
-              disabled={isGenerating}
-              size="lg"
-              className="gradient-primary text-primary-foreground hover:opacity-90 shadow-medium px-8 py-6 text-lg rounded-xl"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-3 animate-spin" />
-                  Generating flashcards...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5 mr-3" />
-                  Generate Flashcards
-                </>
-              )}
-            </Button>
+            <p className="text-muted-foreground text-sm">What would you like to generate?</p>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => handleGenerate("flashcards")}
+                disabled={isGenerating}
+                size="lg"
+                className="gradient-primary text-primary-foreground hover:opacity-90 shadow-medium px-8 py-6 text-lg rounded-xl"
+              >
+                {isGenerating && generateType === "flashcards" ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="h-5 w-5 mr-3" />
+                    Generate Flashcards
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => handleGenerate("quiz")}
+                disabled={isGenerating}
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg rounded-xl border-2"
+              >
+                {isGenerating && generateType === "quiz" ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <HelpCircle className="h-5 w-5 mr-3" />
+                    Generate Quiz
+                  </>
+                )}
+              </Button>
+            </div>
             
             {isGenerating && (
               <div className="text-center space-y-3 animate-fade-in">
@@ -295,7 +439,7 @@ export default function UploadNotes() {
                   <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
                 <p className="text-muted-foreground">
-                  Our AI is reading your notes and creating flashcards...
+                  Our AI is reading your notes and creating {generateType}...
                 </p>
                 <p className="text-sm text-muted-foreground">This usually takes about 30 seconds</p>
               </div>

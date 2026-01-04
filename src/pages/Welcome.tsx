@@ -61,29 +61,45 @@ const Welcome = () => {
   }, []);
 
   const handleGetStarted = () => {
-    navigate("/dashboard");
+    navigate("/auth");
   };
 
-  // Floating particles with parallax
-  const particles = Array.from({ length: 50 }, (_, i) => ({
+  // Floating particles with parallax - more particles
+  const particles = Array.from({ length: 80 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
-    size: Math.random() * 4 + 1,
+    size: Math.random() * 5 + 1,
     duration: Math.random() * 20 + 10,
     delay: Math.random() * 5,
     parallaxFactor: Math.random() * 0.5 + 0.2,
   }));
 
-  // Floating shapes that follow cursor
+  // More floating shapes that follow cursor
   const floatingShapes = [
-    { id: 1, shape: "circle", size: 60, x: 15, y: 20, color: "purple", parallax: 40 },
-    { id: 2, shape: "circle", size: 40, x: 85, y: 15, color: "cyan", parallax: 30 },
-    { id: 3, shape: "square", size: 30, x: 10, y: 70, color: "violet", parallax: 50 },
-    { id: 4, shape: "circle", size: 50, x: 90, y: 75, color: "pink", parallax: 35 },
-    { id: 5, shape: "square", size: 25, x: 75, y: 45, color: "blue", parallax: 45 },
-    { id: 6, shape: "circle", size: 35, x: 25, y: 85, color: "indigo", parallax: 25 },
+    { id: 1, shape: "circle", size: 80, x: 10, y: 15, color: "purple", parallax: 60 },
+    { id: 2, shape: "circle", size: 50, x: 85, y: 10, color: "cyan", parallax: 40 },
+    { id: 3, shape: "square", size: 40, x: 5, y: 60, color: "violet", parallax: 70 },
+    { id: 4, shape: "circle", size: 70, x: 92, y: 70, color: "pink", parallax: 50 },
+    { id: 5, shape: "square", size: 35, x: 80, y: 40, color: "blue", parallax: 55 },
+    { id: 6, shape: "circle", size: 45, x: 20, y: 80, color: "indigo", parallax: 35 },
+    { id: 7, shape: "hexagon", size: 55, x: 50, y: 5, color: "emerald", parallax: 45 },
+    { id: 8, shape: "triangle", size: 45, x: 70, y: 85, color: "amber", parallax: 65 },
+    { id: 9, shape: "circle", size: 30, x: 30, y: 45, color: "rose", parallax: 30 },
+    { id: 10, shape: "square", size: 25, x: 60, y: 25, color: "sky", parallax: 50 },
+    { id: 11, shape: "circle", size: 65, x: 40, y: 90, color: "fuchsia", parallax: 40 },
+    { id: 12, shape: "hexagon", size: 35, x: 95, y: 50, color: "lime", parallax: 55 },
   ];
+
+  // Orbiting elements
+  const orbitingElements = Array.from({ length: 12 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 8 + 4,
+    radius: 200 + Math.random() * 150,
+    duration: 20 + Math.random() * 20,
+    delay: i * 2,
+    color: ["purple", "cyan", "violet", "pink", "blue"][i % 5],
+  }));
 
   return (
     <div ref={containerRef} className="min-h-screen bg-[#0a0a0f] overflow-hidden relative">
@@ -108,7 +124,12 @@ const Welcome = () => {
       {floatingShapes.map((shape) => (
         <motion.div
           key={shape.id}
-          className={`absolute ${shape.shape === "circle" ? "rounded-full" : "rounded-lg rotate-45"} opacity-20 blur-sm`}
+          className={`absolute ${
+            shape.shape === "circle" ? "rounded-full" : 
+            shape.shape === "square" ? "rounded-lg rotate-45" :
+            shape.shape === "hexagon" ? "rounded-lg rotate-[30deg]" :
+            "rotate-[60deg]"
+          } opacity-30 blur-[2px]`}
           style={{
             width: shape.size,
             height: shape.size,
@@ -120,22 +141,98 @@ const Welcome = () => {
               shape.color === "violet" ? "#8b5cf6, #6d28d9" :
               shape.color === "pink" ? "#ec4899, #db2777" :
               shape.color === "blue" ? "#3b82f6, #2563eb" :
-              "#6366f1, #4f46e5"
+              shape.color === "indigo" ? "#6366f1, #4f46e5" :
+              shape.color === "emerald" ? "#10b981, #059669" :
+              shape.color === "amber" ? "#f59e0b, #d97706" :
+              shape.color === "rose" ? "#f43f5e, #e11d48" :
+              shape.color === "sky" ? "#0ea5e9, #0284c7" :
+              shape.color === "fuchsia" ? "#d946ef, #c026d3" :
+              "#84cc16, #65a30d"
             })`,
             x: useTransform(smoothMouseX, [0, 1], [-shape.parallax, shape.parallax]),
             y: useTransform(smoothMouseY, [0, 1], [-shape.parallax, shape.parallax]),
+            boxShadow: `0 0 ${shape.size / 2}px ${
+              shape.color === "purple" ? "rgba(168, 85, 247, 0.5)" :
+              shape.color === "cyan" ? "rgba(34, 211, 238, 0.5)" :
+              "rgba(139, 92, 246, 0.5)"
+            }`,
           }}
           animate={{
-            scale: [1, 1.1, 1],
-            rotate: shape.shape === "square" ? [45, 90, 45] : 0,
+            scale: [1, 1.2, 1],
+            rotate: shape.shape === "square" ? [45, 135, 45] : 
+                   shape.shape === "hexagon" ? [30, 90, 30] :
+                   shape.shape === "triangle" ? [60, 120, 60] : 0,
+            opacity: [0.2, 0.4, 0.2],
           }}
           transition={{
-            duration: 4 + shape.id,
+            duration: 3 + shape.id * 0.5,
             repeat: Infinity,
             ease: "easeInOut",
           }}
         />
       ))}
+
+      {/* Orbiting elements around center */}
+      {orbitingElements.map((orbit) => (
+        <motion.div
+          key={`orbit-${orbit.id}`}
+          className="absolute rounded-full"
+          style={{
+            width: orbit.size,
+            height: orbit.size,
+            left: "50%",
+            top: "50%",
+            background: `radial-gradient(circle, ${
+              orbit.color === "purple" ? "#a855f7" :
+              orbit.color === "cyan" ? "#22d3ee" :
+              orbit.color === "violet" ? "#8b5cf6" :
+              orbit.color === "pink" ? "#ec4899" :
+              "#3b82f6"
+            }, transparent)`,
+            boxShadow: `0 0 ${orbit.size * 2}px ${
+              orbit.color === "purple" ? "rgba(168, 85, 247, 0.8)" :
+              orbit.color === "cyan" ? "rgba(34, 211, 238, 0.8)" :
+              orbit.color === "violet" ? "rgba(139, 92, 246, 0.8)" :
+              orbit.color === "pink" ? "rgba(236, 72, 153, 0.8)" :
+              "rgba(59, 130, 246, 0.8)"
+            }`,
+          }}
+          animate={{
+            x: [
+              Math.cos(0) * orbit.radius,
+              Math.cos(Math.PI / 2) * orbit.radius,
+              Math.cos(Math.PI) * orbit.radius,
+              Math.cos(Math.PI * 1.5) * orbit.radius,
+              Math.cos(Math.PI * 2) * orbit.radius,
+            ],
+            y: [
+              Math.sin(0) * orbit.radius,
+              Math.sin(Math.PI / 2) * orbit.radius,
+              Math.sin(Math.PI) * orbit.radius,
+              Math.sin(Math.PI * 1.5) * orbit.radius,
+              Math.sin(Math.PI * 2) * orbit.radius,
+            ],
+          }}
+          transition={{
+            duration: orbit.duration,
+            repeat: Infinity,
+            ease: "linear",
+            delay: orbit.delay,
+          }}
+        />
+      ))}
+
+      {/* Glowing cursor trail effect */}
+      <motion.div
+        className="pointer-events-none fixed w-64 h-64 rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgba(139, 92, 246, 0.15), transparent 70%)",
+          x: useTransform(smoothMouseX, [0, 1], [0, typeof window !== 'undefined' ? window.innerWidth : 1000]),
+          y: useTransform(smoothMouseY, [0, 1], [0, typeof window !== 'undefined' ? window.innerHeight : 800]),
+          translateX: "-50%",
+          translateY: "-50%",
+        }}
+      />
 
       {/* Floating particles */}
       {particles.map((particle) => (

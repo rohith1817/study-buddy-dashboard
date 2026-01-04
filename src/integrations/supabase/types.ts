@@ -14,7 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      flashcards: {
+        Row: {
+          answer: string
+          bookmarked: boolean | null
+          created_at: string
+          difficulty: string | null
+          id: string
+          question: string
+          source_file_name: string | null
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          bookmarked?: boolean | null
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          question: string
+          source_file_name?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          bookmarked?: boolean | null
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          question?: string
+          source_file_name?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          explanation: string | null
+          id: string
+          options: Json
+          question: string
+          quiz_id: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          options: Json
+          question: string
+          quiz_id: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          options?: Json
+          question?: string
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          id: string
+          source_file_name: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_file_name?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_file_name?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
