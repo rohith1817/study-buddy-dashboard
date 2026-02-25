@@ -82,3 +82,21 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 
 changing/modifying the file
+
+public class SecondLargest {
+    public static void main(String[] args) {
+        int[] numbers = {12,45,7,89,34};
+        int largest = Integer.MIN_VALUE;
+        int second = Integer.MIN_VALUE;
+        for (int n : numbers) {
+            if (n > largest) {
+                second = largest;
+                largest = n;
+            } else if (n > second && n != largest) {
+                second = n;
+            }
+        }
+        System.out.println(second);
+    }
+}
+
